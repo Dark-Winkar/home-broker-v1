@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Home Broker</title>
+        <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.3/themes/smoothness/jquery-ui.css">
+        <style>
+        body{
+            background-color: #696969;
+        }
+
+        #option{
+            display: flex;
+            border: none;
+            transition: background-color 0.50s;
+            background-color: #696969;
+            cursor: pointer;
+            padding: 5px;
+            margin: 0;
+            border-radius: 50%;
+            position: relative;
+            width: 60px;
+            height: 60px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #option:hover{
+            background-color: rgba(0, 0, 0, 0.25);
+        }
+
+        #option:active{
+            box-shadow: 5px 5px 11px #3d3d37;
+        }
+        
+        #option.active {
+            background-color: #888888;
+        }
+
+        #menu{
+            display: none;
+            top: 100%;
+            width: 220px;
+            height: 90px;
+            align-items: left;
+            left: 0;
+            background-color: #adada0;
+            text-align:left;
+            position: absolute;
+            padding: 0;
+            margin: 0;
+            border-radius: 10px;
+        }
+
+        .ui-option{
+            font-size: 25px;
+            padding: 2%;
+            margin: 0;
+            list-style: none;
+        }
+
+        .ui-option-text {
+            text-align: left;
+            padding: 0;
+            cursor: default;
+            line-height: 40px;
+            color: black;
+        }
+
+        .ui-option-text:hover{
+            border-radius: 10px;
+            background-color: #cccc;
+            color: black;
+        }
+
+        .ui-dialog {
+            background-color: #2b2b29;
+            border: none !important;
+            border-radius: 10px;
+            font-family: Arial, sans-serif;
+            padding: 0;
+            overflow: hidden;
+
+        }
+
+        .ui-dialog-content {
+            padding: 20px;
+            color: white;
+        }
+        
+        .ui-dialog-titlebar {
+            background-color: #636363;
+            background-image: none !important;
+            border: none;
+        }
+
+        .widget-table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        .widget-table th{
+            padding: 5px;
+            border: 1px solid #777;
+        }
+ 
+        #container{
+            position: relative;
+            display: inline-block;
+        }
+
+        .input-search {
+            display: block;
+            position: relative;
+            margin: 20px auto 0;
+            padding: 8px;
+            font-size: 16px;
+            background-color: rgba(0, 0, 4, 0.40);
+            width: 300px;
+            height: 40px;
+            color: white;
+            border-radius: 7px;
+            font-size: 25px;
+        }
+       
+
+        </style>
+        <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+        <script src="https://code.jquery.com/ui/1.14.2/jquery-ui.js"></script>
+        <script> 
+        $(function(){
+            var dialog;
+
+            const $menu = $("#menu");
+            const $option = $("#option");
+            
+            async function addStockAction(e){
+               if(e) e.preventDefault();
+
+                var ticker = $("#search").val();
+        
+                const res = await fetch(`http://localhost:3000/stock/${ticker}`);
+                const data = await res.json();
+
+
+                var name = data.symbol;
+                var preco = data.price;
+                var mudanca = data.change;
+                var minimo = data.min;
+                var maximo = data.max;
+                var abert = data.open;
+
+                if(!res.ok){
+                    alert("Ação não encontrada");
+                    return;
+                }
+                
+                $("#acoes tbody").append( "<tr id='stock-"+name+"'>" + 
+                    "<td>" + name + "</td>" + 
+                    "<td>" + preco + "</td>" + 
+                    "<td>" + mudanca + "</td>" + 
+                    "<td>Hora</td>" + 
+                    "<td>" + minimo + "</td>" + 
+                    "<td>" + maximo + "</td>" + 
+                    "<td>" + abert + "</td>" + 
+                "</tr>"
+                );
+                
+                $("#search").val("");
+            }
+
+            async function updateStock(ticker){
+                const res = await fetch(`http://localhost:3000/stock/${ticker}`);
+                const data = await res.json();
+                const row = $("#stock-" + ticker);
+
+                row.find("td:eq(1)").text(data.price); 
+                row.find("td:eq(2)").text(data.change);
+                row.find("td:eq(4)").text(data.min);
+                row.find("td:eq(5)").text(data.max); 
+                row.find("td:eq(6)").text(data.open);
+            }
+
+            $option.click(function(e){
+                e.stopPropagation();
+                $(this).toggleClass("active");
+                $menu.toggle(200);
+            });
+
+            $(document).click(function() {
+                if($menu.is(":visible")){
+                    $menu.toggle(200);
+                    $option.removeClass("active");
+                }
+            });
+
+            dialog = $("#dialog").dialog({
+                autoOpen: false,
+                width: "600px",
+                height: 100
+            });
+            
+            $("#open-grade").click(function(){
+                dialog.dialog("open");
+            });
+            
+            $("#search").on('keydown', function(e){
+                if (e.key === "Enter"){
+                    e.preventDefault();
+                    addStockAction(e);
+                }
+            });
+
+            setInterval(function(){
+                $("#acoes tbody tr").each(function(){
+                    const ticker = $(this).find("td:first").text();
+                    updateStock(ticker);
+                });
+            }, 5000);
+
+        });
+         
+        </script>
+    </head>
+    <body>
+
+        <div id="container">
+            <button id="option">
+                <img src="assets/buttom-config-2.svg" width="50">
+            </button>
+             <div id="menu">
+                <ul class="ui-option">
+                    <li class="ui-option-text">Gráfico</li>
+                    <li class="ui-option-text" id="open-grade">Grade de Cotação</li>
+                </ul>
+            </div>
+        </div>
+
+        <div id="search-form">
+            <label for="search"></label>
+            <input type="text" name="name" id="search" class="input-search" placeholder="search">
+        </div>
+        <div id="dialog">
+            <table class="widget-table" id="acoes">
+                <thead>
+                    <tr>
+                        <th>Ação</th>
+                        <th>Valor</th>
+                        <th>Variação</th>
+                        <th>Hora</th>
+                        <th>Mínima</th>
+                        <th>Máxima</th>
+                        <th>Abertura</th>
+                    </tr>
+                </thead>
+                <tbody>
+                
+                </tbody>
+            </table>   
+        </div>
+    </body>
+
+</html>
